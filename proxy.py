@@ -22,10 +22,11 @@ def connection(conn, addr, port):
    client_connection=conn
    client_address=addr
    PORT=port
-   client_connection.settimeout(10) 
+   client_connection.settimeout(30)
    while True:
-      	request=client_connection.recv(1024)
-      	#print(request)
+      try:
+        request=client_connection.recv(1024)
+    	#print(request)
       	try:
         	Request_HOST=request[request.index("Host"):]
         	HOST=Request_HOST[len("Host: "):Request_HOST.index("\r\n")]	
@@ -41,11 +42,18 @@ def connection(conn, addr, port):
         #print(data)
         	client_connection.send(data)
         except:
-        	pass
+          f.write(request)
+        	
+      except:
+        print("TIMEOUT")
+        client_connection.close()
+        break
  
 if __name__=='__main__':
    
    #procs=[]
+   f=open("output.txt",'w')
+
    PORT=int(sys.argv[1])
    
    listen_socket=open_server(PORT)
@@ -54,16 +62,17 @@ if __name__=='__main__':
    
    while True:
       
+    
       client_connection, client_address=listen_socket.accept()
       t=threading.Thread(target=connection, args=(client_connection,client_address,PORT))
       t.daemon=True
       connection_list.append(t)
       t.start()
-
+    
 
      
    for i in connection_list:
       i.join()
-      print("-----------DONE------------")   
-
+      print("-----------DONE------------")
+   f.close()
       
