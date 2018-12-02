@@ -1,8 +1,6 @@
 from socket import *
 import sys
 import os
-import multiprocessing
-import time
 import threading
 from pwn import *
 
@@ -18,61 +16,62 @@ def open_server(port):
    return listen_socket
 
 def connection(conn, addr, port):
-
    client_connection=conn
    client_address=addr
    PORT=port
-   client_connection.settimeout(30)
-   while True:
-      try:
-        request=client_connection.recv(1024)
-    	#print(request)
-      	try:
-        	Request_HOST=request[request.index("Host"):]
-        	HOST=Request_HOST[len("Host: "):Request_HOST.index("\r\n")]	
-        	serverName=""
-        	serverPort=80
-        	serverName=HOST
-        #print(serverName, serverPort)
-        
-        	clientSocket=socket.socket(AF_INET,SOCK_STREAM)
-        	clientSocket.connect((serverName,serverPort))
-        	clientSocket.send(request)
-        	data=clientSocket.recv(6000)
-        #print(data)
-        	client_connection.send(data)
-        except:
-          f.write(request)
-        	
-      except:
-        print("TIMEOUT")
-        client_connection.close()
-        break
+   request=client_connection.recv(4096)
+   Request_HOST=request[request.index("Host"):]
+   HOST=Request_HOST[len("Host: "):Request_HOST.index("\r\n")]	
+   serverName=""
+   serverPort=80
+   serverName=HOST
+   print(serverName, serverPort)
+   try:
+       clientSocket=socket.socket(AF_INET,SOCK_STREAM)
+       clientSocket.connect((serverName,serverPort))
+       clientSocket.send(request)
+       
+       while 1:
+           data=clientSocket.recv(4096)
+           if(len(data)>0):
+               client_connection.send(data)
+           else:
+               break
+
+   except:
+    	print("ERROR")
+
+   finally:
+    	if(clientSocket):
+    		clientSocket.close()
+    	if(client_connection):
+    		client_connection.close()
+
  
 if __name__=='__main__':
    
-   #procs=[]
-   f=open("output.txt",'w')
-
+  
    PORT=int(sys.argv[1])
    
    listen_socket=open_server(PORT)
    
    connection_list=[]
-   
-   while True:
-      
-    
-      client_connection, client_address=listen_socket.accept()
-      t=threading.Thread(target=connection, args=(client_connection,client_address,PORT))
-      t.daemon=True
-      connection_list.append(t)
-      t.start()
-    
+   try: 
+	   while True:
+	      
+	    
+	      client_connection, client_address=listen_socket.accept()
+	      t=threading.Thread(target=connection, args=(client_connection,client_address,PORT))
+	      t.daemon=True
+	      connection_list.append(t)
+	      t.start()
+	    
 
-     
-   for i in connection_list:
-      i.join()
-      print("-----------DONE------------")
-   f.close()
+	     
+	   for i in connection_list:
+	      i.join()
+	      print("-----------DONE------------")
+   except:
+       sys.exit(1)
+
       
